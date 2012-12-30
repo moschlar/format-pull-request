@@ -50,18 +50,26 @@ else:
 
 
 def format_pull_request(owner, repo, pull_id):
-    r = requests.get('https://api.github.com/repos/%s/%s/pulls/%d' % (owner, repo, pull_id))
+    pull_uri = 'https://api.github.com/repos/%s/%s/pulls/%d' % (owner, repo, pull_id)
+    pull = get_json(pull_uri)
 
-    if not r.ok: raise
-    j = json.loads(r.text or r.content)
+    title, body = pull['title'], pull['body']
 
-    title, body = j['title'], j['body']
-    p = requests.get(j['patch_url'])
+    commits = get_json(pull_uri + '/commits')
+    commit_uri = pull['head']['repo']['commits_url']
 
-    if not p.ok: raise
-    patch = p.text or p.content
+    for commit in commits:
+        commit['uri'] = commit_uri.replace('{/sha}', '/%s' % commit['sha'])
+        commit['diff'] = requests.get(commit['uri'], headers={'Accept': 'application/vnd.github.beta.diff'}).text
+        commit['patch'] = requests.get(commit['uri'], headers={'Accept': 'application/vnd.github.beta.patch'}).text
+
+        s.sendmail(MAIL_FROM, MAIL_TO, commit['patch'])
+
+    sys.exit(0)
 
     msg = MIMEText(body + '\n\n' + patch)
+
+    print patch
 
     msg['Subject'] = '[%s/%s/pulls/%d] %s' % (owner, repo, pull_id, title)
     msg['From'] = MAIL_FROM
