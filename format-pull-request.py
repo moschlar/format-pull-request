@@ -1,30 +1,52 @@
 #!/usr/bin/env python
 
 # Defaults:
-SMTP_HOST = "localhost"
+SMTP_HOST = None
 SMTP_PORT = None
 SMTP_SSL = False
-SMTP_USER = None
-SMTP_PASS = None
+SMTP_USER = ""
+SMTP_PASS = ""
 
 MAIL_FROM = ""
-MAIL_TO = "moschlar@metalabs.de"
+MAIL_TO = ""
 
 import sys
 import requests
-import json
+#import json
 import smtplib
 from email.mime.text import MIMEText
 
 
-if SMTP_SSL:
-    s = smtplib.SMTP_SSL()
-else:
-    s = smtplib.SMTP()
+class SMTP_DUMMY(object):
+    def sendmail(self, from_, to, msg, *args, **kw):
+        print from_
+        print to
+        print msg
 
-s.connect(SMTP_HOST, SMTP_PORT)
-if SMTP_USER and SMTP_PASS:
-    s.login(SMTP_USER, SMTP_PASS)
+
+def get_json(url, *args, **kwargs):
+    r = requests.get(url, *args, **kwargs)
+    if r.ok:
+        #return json.loads(r.text or r.content)
+        try:
+            return r.json()
+        except Exception as e:
+            raise Exception('Response payload could not be read as json', e)
+    else:
+        raise Exception('Response status is not ok', r.status_code)
+
+
+if SMTP_HOST:
+    if SMTP_SSL:
+        s = smtplib.SMTP_SSL()
+    else:
+        s = smtplib.SMTP()
+
+    s.connect(SMTP_HOST, SMTP_PORT)
+    if SMTP_USER and SMTP_PASS:
+        s.login(SMTP_USER, SMTP_PASS)
+else:
+    s = SMTP_DUMMY()
 
 
 def format_pull_request(owner, repo, pull_id):
