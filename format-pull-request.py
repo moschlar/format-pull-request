@@ -18,10 +18,14 @@ from email.mime.text import MIMEText
 
 
 class SMTP_DUMMY(object):
+
     def sendmail(self, from_, to, msg, *args, **kw):
         print from_
         print to
         print msg
+
+    def close(self):
+        pass
 
 
 def get_json(url, *args, **kwargs):
@@ -60,24 +64,11 @@ def format_pull_request(owner, repo, pull_id):
 
     for commit in commits:
         commit['uri'] = commit_uri.replace('{/sha}', '/%s' % commit['sha'])
+        print get_json(commit['uri'])
         commit['diff'] = requests.get(commit['uri'], headers={'Accept': 'application/vnd.github.beta.diff'}).text
         commit['patch'] = requests.get(commit['uri'], headers={'Accept': 'application/vnd.github.beta.patch'}).text
 
         s.sendmail(MAIL_FROM, MAIL_TO, commit['patch'])
-
-    sys.exit(0)
-
-    msg = MIMEText(body + '\n\n' + patch)
-
-    print patch
-
-    msg['Subject'] = '[%s/%s/pulls/%d] %s' % (owner, repo, pull_id, title)
-    msg['From'] = MAIL_FROM
-    msg['To'] = MAIL_TO
-
-    #print msg.as_string()
-
-    s.sendmail(MAIL_FROM, MAIL_TO, msg.as_string())
 
 
 if __name__ == '__main__':
