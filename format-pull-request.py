@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+print 'This software is:'
+print ' +++ ALPHA +++ ' * 5
+
 # Defaults:
 SMTP_HOST = None
 SMTP_PORT = None
